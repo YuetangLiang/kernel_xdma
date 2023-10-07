@@ -214,11 +214,11 @@ Please follow the next set of steps:
 
 1.  Clone the git repo locally:
 
-        git clone git@git.nevint.com:L4/zynq_gps.git
+        git clone
 
 2.  Enter the directory and compile the code:
 
-        cd zynq_gps/xdma
+        cd kernel_xdma/xdma
         make
     
     If the \`make\` command was successful, you would find xdma.ko.
@@ -424,11 +424,11 @@ card0
 [   76.006342] basa: zynq_probe map bar0: bar_start=0xfa800000, bar_len=524288, bar_va=0x00000000272c88d2
 [   76.006344] basa: 0 zynq_g_reg_read: g_reg 0x0 = 0xad010000
 [   76.006346] basa: FPGA device <10ee,903f> basa0--0000-02-00-0
-[   76.006376] basa: zynq_create_cdev created device /dev/zynq_gps0
+[   76.006376] basa: zynq_create_cdev created device /dev/kernel_xdma0
 [   76.006379] basa: 0 zynq_g_reg_write: write 0xffffffff to g_reg 0x108
 [   76.006380] basa: 0 zynq_g_reg_write: write 0xffffffff to g_reg 0x118
 [   76.006381] basa: 0 zynq_g_reg_write: write 0xffffffef to g_reg 0x124
-[   76.006381] basa: 0 zynq_gps_init: GPS master device set
+[   76.006381] basa: 0 kernel_xdma_init: GPS master device set
 [   76.006383] basa: 0 zynq_g_reg_read: g_reg 0x8 = 0xa15
 [   76.006383] basa: 0 PPS is OFF, GPS is NOT locked
 [   76.006423] basa:  found, device basa0--0000-02-00-0, firmware version=ad010000.

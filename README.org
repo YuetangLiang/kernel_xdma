@@ -9,17 +9,17 @@
 
 | package        | Description          | Language |
 |----------------+----------------------+----------|
-| ZYNQ_GPS       | Kernel Driver        | C        |
-| ZYNQ_GPS/tools | Management Interface | shell    |
+| KERNEL_XDMA       | Kernel Driver        | C        |
+| KERNEL_XDMA/tools | Management Interface | shell    |
 | lib_zynq       | User Library         | C++      |
 | zelda_camera   | App                  | C++      |
 
 
-** ZYNQ_GPS
-   The ZYNQ_GPS Driver is provided as an option to transfer data between the FPGA and the Instance's CPU memory.
+** KERNEL_XDMA
+   The KERNEL_XDMA Driver is provided as an option to transfer data between the FPGA and the Instance's CPU memory.
    
-*** ZYNQ_GPS/XDMA
-    ZYNQ_GPS/XDMA is a Linux kernel driver for using DMA and User-defined interrupts for FPGA.
+*** KERNEL_XDMA/XDMA
+    KERNEL_XDMA/XDMA is a Linux kernel driver for using DMA and User-defined interrupts for FPGA.
     There are several parts required to work with: 
     file:XDMA_ArchInternalDependencies-DirectoryStructure.png
 
@@ -28,10 +28,10 @@
     | xdma_mod  | kernel driver main |
     | libxdma   | Xilinx XDMA CORE   |
     | zynq_main | NSU FPGA main      |
-    | zynq_gps  | GPS time           |
+    | kernel_xdma  | GPS time           |
 
 
-** ZYNQ_GPS/tools
+** KERNEL_XDMA/tools
    xdma KMD provides the following set of command-line tools for NSU management
    
 *** dma_from_device
@@ -86,12 +86,12 @@
    
 **** Clone the git repo locally:
      #+begin_src bash
-       git clone git@git.nevint.com:L4/zynq_gps.git
+       git clone
      #+end_src
 
 **** Enter the directory and compile the code:
      #+begin_src bash
-       cd zynq_gps/xdma
+       cd kernel_xdma/xdma
        make
      #+end_src
      If the `make` command was successful, you would find xdma.ko.
