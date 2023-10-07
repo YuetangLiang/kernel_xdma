@@ -1,0 +1,115 @@
+#+OPTIONS: ^:nil
+
+* Overview of xdma KMD
+  - xdma KMD provides memory-mapped PCIe address space for direct communication between CPU and FPGA
+  - Linux userspace App would interface with the FPGA during runtime.
+
+  There are several parts required to work with FPGA: 
+  [[file:ArchInternalDependencies-DirectoryStructure.png]]
+
+| package        | Description          | Language |
+|----------------+----------------------+----------|
+| ZYNQ_GPS       | Kernel Driver        | C        |
+| ZYNQ_GPS/tools | Management Interface | shell    |
+| lib_zynq       | User Library         | C++      |
+| zelda_camera   | App                  | C++      |
+
+
+** ZYNQ_GPS
+   The ZYNQ_GPS Driver is provided as an option to transfer data between the FPGA and the Instance's CPU memory.
+   
+*** ZYNQ_GPS/XDMA
+    ZYNQ_GPS/XDMA is a Linux kernel driver for using DMA and User-defined interrupts for FPGA.
+    There are several parts required to work with: 
+    file:XDMA_ArchInternalDependencies-DirectoryStructure.png
+
+    | models    | Description        |
+    |-----------+--------------------|
+    | xdma_mod  | kernel driver main |
+    | libxdma   | Xilinx XDMA CORE   |
+    | zynq_main | NSU FPGA main      |
+    | zynq_gps  | GPS time           |
+
+
+** ZYNQ_GPS/tools
+   xdma KMD provides the following set of command-line tools for NSU management
+   
+*** dma_from_device
+*** reg_rw
+*** zynq_rw
+
+** lib_zynq
+   [[file:ClusterCallButterflyGraph-lib_zynq_cam_irq-cpp.png]]
+
+*** FPGA PCIe Memory Address Map
+   
+*** APIs
+
+**** Quick Example
+     Before diving into the detail specification of the APIs, here's a short, intuitive example on how the developer could use it:
+     The Program below uses [[subscribe_zynq_cam][subscribe_zynq_cam()]] to enable
+     zynq_camera_callback() function that will get called when a new image has
+     arrived.
+
+
+     #+BEGIN_SRC c
+       static void zynq_camera_callback(void *d)
+       {
+         zynq_cam_t         *cam    = (typeof(cam))d;
+         memcpy(buf, ptr_of_cam(cam->id), size);
+       }
+
+       int main()
+       {
+         ret = subscribe_zynq_cam(cam_id, zynq_camera_callback);
+       }
+
+
+     #+END_SRC
+**** subscribe_zynq_cam
+     #+begin_src c
+       int subscribe_zynq_cam(int cam_id, void (*cb)(void *d))
+     #+end_src
+     
+**** Messages
+
+
+** Installation Guide
+   To make sure the driver is installed run next command from your linux shell:
+   #+begin_src bash
+   lsmod | grep xdma
+   #+end_src
+   Running this will return XDMA only if the driver is installed and running.
+
+*** How To Compile
+   Please follow the next set of steps:
+   
+**** Clone the git repo locally:
+     #+begin_src bash
+       git clone git@git.nevint.com:L4/zynq_gps.git
+     #+end_src
+
+**** Enter the directory and compile the code:
+     #+begin_src bash
+       cd zynq_gps/xdma
+       make
+     #+end_src
+     If the `make` command was successful, you would find xdma.ko.
+
+**** Copy the driver to the modules directory:
+     #+begin_src bash
+       sudo make install
+     #+end_src
+       
+     To unload the driver:
+     #+begin_src bash
+       sudo rmmod xdma
+     #+end_src
+  
+
+
+
+
+
+   
+
