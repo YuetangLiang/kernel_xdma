@@ -27,12 +27,14 @@
     bar: pcie_config_reg
     DDR: pcie_device_memory
 
-
+```css
   [camera_0-11] => [serial] => [lvds] => [deser] => {
-    SOC: xilinx zu11
+    /*
+     *   SOC: xilinx zu11
+     */
     [PS][MIPI] => [device DDR] => [PL][PCIe]
   } => [Host DDR]
-
+```
 - KMD: /dev/xdma0_c2h_0
   c2h: card to host == d2h: device to host
 
@@ -41,30 +43,29 @@
   module_init(xdma_mod_init);
   alloc_chrdev_region();
   pci_register_driver(&pci_driver);
-
-static struct pci_driver xdma_driver = {
+  static struct pci_driver xdma_driver = {
 	.name = DRV_MODULE_NAME,
 	.id_table = pci_ids,
 	.probe = probe_one,
 	.remove = remove_one,
 	.err_handler = &xdma_err_handler,
-};
+  };
 
-static const struct pci_device_id pci_ids[] = {
-	{ PCI_DEVICE(0x10ee, 0x903f), },
-};
-
-#define PCI_DEVICE(vend,dev) .vendor = (vend), .device = (dev)
-
+  static const struct pci_device_id pci_ids[] = {
+    { PCI_DEVICE(0x10ee, 0x903f), },
+  };
+  #define PCI_DEVICE(vend,dev) .vendor = (vend), .device = (dev)
   ```
 
 - launch KMD
+```css
+   [pcie_dev: vendorID/deviceID] => {
+    [pcie_dev] => [kernel: pciBus match: id_table] => [pcie_drv] => probe()
+  }
+```
+
   ```bash
   insmod ./xdma.ko
-  # [device pcie: vendorID/deviceID] => {
-
-    [pcie_dev] => [kernel: pciBus list match: id_table] => [xdma_driver:pcie_drv] => probe()
-  }
   ```
 
 -   xdma KMD provides memory-mapped PCIe address space for direct communication between CPU and FPGA
