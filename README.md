@@ -35,7 +35,7 @@
     [PS][MIPI] => [device DDR] => [PL][PCIe]
   } => [Host DDR]
 ```
-- KMD: /dev/xdma0_c2h_0
+## KMD: /dev/xdma0_c2h_0
   c2h: card to host == d2h: device to host
 
   [device DDR] => [PCIe 3.0 bus 2T Bytes/s]=> [Host DDR]
@@ -57,16 +57,138 @@
   #define PCI_DEVICE(vend,dev) .vendor = (vend), .device = (dev)
   ```
 
-- launch KMD
+### launch
+
+```bash
+  insmod ./xdma.ko
+```
 ```css
    [pcie_dev: vendorID/deviceID] => {
     [pcie_dev] => [kernel: pciBus match: id_table] => [pcie_drv] => probe()
   }
 ```
+#### probe
+```css
+[probe_one] => [xdma_device_open] {
+    [alloc_dev_instance]
+    [pci_enable_device]
+    [pci_request_regions]
+    [map_bars] {
+        pci_resource_start()
+        pci_resource_len()
+        pci_iomap()
+    }
+    [probe_engines] {
+        h2d
+        d2h
+    }
+    [enable_msi_msix] {
+        pci_alloc_irq_vectors()
+    }
+    [irq_setup] => [irq_msix_channel_setup] {
+        request_irq(irq, xdma_channel_irq)
+        irq => [xdma_channel_irq] {
+            handle channel interrupts...
+        }
+    }
+    [xdma_user_isr_enable] {
+        write_register(XDMA_OFS_INT_CTRL);
+    }
 
-  ```bash
-  insmod ./xdma.ko
-  ```
+    [xpdev_create_interfaces] => [create_xcdev] {
+        alloc_chrdev_region()
+        cdev_init(&cdev, &sgdma_fops)
+    }
+
+}
+```
+```cpp
+static const struct file_operations sgdma_fops = {
+	.owner = THIS_MODULE,
+	.open = char_sgdma_open,
+	.release = char_sgdma_close,
+	.write = char_sgdma_write,
+	.read = char_sgdma_read,
+	.unlocked_ioctl = char_sgdma_ioctl,
+	.llseek = char_sgdma_llseek,
+};
+```
+
+#### read: d2h
+
+```css
+[char_sgdma_read] => [char_sgdma_read_write] {
+    
+    [char_sgdma_map_user_buf_to_sgl] {
+        sg_alloc_table()
+        get_user_pages_fast(usr_va, pages)
+        flush_dcache_page(pages)
+        sg_set_page(sg, page)
+    }
+
+    [xdma_xfer_submit] {
+        [pci_map_sg] {
+            sg->dma_address = sg_phys(sg);
+        } 
+        [xdma_init_request] {
+            xdma_request_alloc()
+            req->sdesc[].addr = sg->dma_address;
+        }
+        [transfer_init] {
+            xdma_desc_set(
+                req->sdesc->addr, // host_PA
+                req->ep_addr,     // device_PA
+                req->sdesc->len);
+        }
+        [transfer_queue] => [engine_start]
+    }
+}
+```
+##### engine_start
+```cpp
+static struct xdma_transfer *engine_start(struct xdma_engine *engine)
+{
+	u32 w;
+	struct xdma_transfer *transfer;
+	transfer = list_entry(engine->transfer_list.next, struct xdma_transfer,
+				entry);
+
+	w = cpu_to_le32(PCI_DMA_L(transfer->desc_bus));
+	iowrite32(w, &engine->sgdma_regs->first_desc_lo);
+	w = cpu_to_le32(PCI_DMA_H(transfer->desc_bus));
+	iowrite32(w, &engine->sgdma_regs->first_desc_hi);
+	mmiowb();
+
+	engine_start_mode_config(engine);
+	engine_status_read(engine, 0, 0);
+	return transfer;
+}
+```
+##### pci_map_sg
+```cpp
+int dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
+	       enum dma_data_direction dir)
+{
+	int i;
+	struct scatterlist *sg;
+
+	for_each_sg(sglist, sg, nents, i) {
+		sg->dma_address = sg_phys(sg);
+		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
+					   dir);
+	}
+	return nents;
+}
+void test() {
+	int i, count = dma_map_sg(dev, sglist, nents, direction);
+	struct scatterlist *sg;
+
+	for_each_sg(sglist, sg, count, i) {
+		hw_address[i] = sg_dma_address(sg);
+		hw_len[i] = sg_dma_len(sg);
+	}
+}
+```
 
 -   xdma KMD provides memory-mapped PCIe address space for direct communication between CPU and FPGA
 -   Linux userspace App would interface with the FPGA during runtime.
