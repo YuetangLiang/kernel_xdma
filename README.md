@@ -19,6 +19,53 @@
 <a id="org14cad42"></a>
 
 # Overview of xdma KMD
+  I2C
+  serdes
+  PS: arm
+  PL: fpga
+  PL_PCIe_device:
+    bar: pcie_config_reg
+    DDR: pcie_device_memory
+
+
+  [camera_0-11] => [serial] => [lvds] => [deser] => {
+    SOC: xilinx zu11
+    [PS][MIPI] => [device DDR] => [PL][PCIe]
+  } => [Host DDR]
+
+- KMD: /dev/xdma0_c2h_0
+  c2h: card to host == d2h: device to host
+
+  [device DDR] => [PCIe 3.0 bus 2T Bytes/s]=> [Host DDR]
+  ```cpp
+  module_init(xdma_mod_init);
+  alloc_chrdev_region();
+  pci_register_driver(&pci_driver);
+
+static struct pci_driver xdma_driver = {
+	.name = DRV_MODULE_NAME,
+	.id_table = pci_ids,
+	.probe = probe_one,
+	.remove = remove_one,
+	.err_handler = &xdma_err_handler,
+};
+
+static const struct pci_device_id pci_ids[] = {
+	{ PCI_DEVICE(0x10ee, 0x903f), },
+};
+
+#define PCI_DEVICE(vend,dev) .vendor = (vend), .device = (dev)
+
+  ```
+
+- launch KMD
+  ```bash
+  insmod ./xdma.ko
+  # [device pcie: vendorID/deviceID] => {
+
+    [pcie_dev] => [kernel: pciBus list match: id_table] => [xdma_driver:pcie_drv] => probe()
+  }
+  ```
 
 -   xdma KMD provides memory-mapped PCIe address space for direct communication between CPU and FPGA
 -   Linux userspace App would interface with the FPGA during runtime.
@@ -77,9 +124,12 @@ There are several parts required to work with FPGA:
 
 <a id="org71d0106"></a>
 
-## ZYNQ\_GPS
 
-The ZYNQ\_GPS Driver is provided as an option to transfer data between the FPGA and the Instance&rsquo;s CPU memory.
+## xdma UMD (User Mode Driver)
+
+## xdma KMD (Kernel Mode Driver)
+- 
+The xdma KMD Driver is provided as an option to transfer data between the FPGA and the Instance&rsquo;s CPU memory.
 
 
 <a id="org6c25103"></a>
