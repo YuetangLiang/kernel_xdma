@@ -18,6 +18,55 @@
 
 <a id="org14cad42"></a>
 
+##  Story [2022 - 2023]: Vehicle Data Collector 
+```css
+/* 
+ * fov: field of view (fov120 degree)
+ * nv12: yuv420sp (Semi Planner: [YYYY]:[UVUV])
+ * camera AR0231 1080p: 1920x1080
+ */
+
+[Truck Side Mirror] => [Side Camera] {
+    [L fov:120] => [openCV obj detect]
+    [R fov:120] => [openCV obj detect]
+}
+
+/* 
+ * Camera delay: < 1 ms
+ */
+[Truck Side Mirror] => [Side Camera] {
+    /* Recording h264 */
+    [L fov:120] => [xilinx zu11 xdma] => [host] {
+        [nv12] => [nvidia device: h264 encoder] => [L.h264]
+    } 
+    [R fov:120] => [xilinx zu11 xdma] => [host] {
+        [nv12] => [nvidia device: h264 encoder] => [R.h264]
+    }
+
+    /* Training */
+    [L/R.h264] => [CNN:Pytorch] => [model]
+
+    /* Deploy */
+    [L fov:120] => [xilinx zu11 xdma] => [host] {
+        [nv12] => [model.infer] => [obj detect]
+    } 
+    [R fov:120] => [xilinx zu11 xdma] => [host] {
+        [nv12] => [model.infer] => [obj detect]
+    }
+}
+
+/* 
+ * Eth Camera delay: 120 ms
+ * camera:enc => [eth] => dec => nv12
+ */ 
+[Truck Side Mirror] => [Eth: Side Camera] {
+    [Eth: L/R fov:120 h264 enc] {
+        [h264] => [nvidia device: h264 decoder] => [model.infer] => [obj detect]
+    }
+}
+
+```
+
 # Overview of xdma KMD
   I2C
   serdes
